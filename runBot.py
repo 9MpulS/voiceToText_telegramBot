@@ -3,6 +3,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
 import speech_recognition as sr
 from aiogram.types import Message
+from openai import OpenAI
 import subprocess
 import asyncio
 import os
@@ -10,6 +11,7 @@ import os
 bot = Bot(TG_TOKEN)
 dp = Dispatcher()
 r = sr.Recognizer()
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 @dp.message(CommandStart())
 async def command_start_handler(message: Message) -> None:
@@ -18,16 +20,20 @@ async def command_start_handler(message: Message) -> None:
 @dp.message(F.voice)
 async  def conwertWoiceToText(messege: Message) -> None:
     file_info = await bot.get_file(messege.voice.file_id)
-    path = os.path.splitext(file_info.file_path)[0]
-    fname = os.path.basename(path)
-    file_name = f'{fname}_{messege.from_user.full_name}.aga'
-    file_name_wav = f'{fname}_{messege.from_user.full_name}.wav'
+    short_name = os.path.basename(os.path.splitext(file_info.file_path)[0])
+    file_name = f'{short_name}_{messege.from_user.full_name}.aga'
+    file_name_wav = f'{short_name}_{messege.from_user.full_name}.wav'
     await bot.download(messege.voice.file_id, file_name)
     subprocess.run([FFMPEG_PATH, '-i', file_name, file_name_wav])
-    with sr.AudioFile(file_name_wav) as source:
-        audio = r.record(source)
-    text = r.recognize_google_cloud(audio, OPENAI_API_KEY, 'ru-RU')
-    await messege.reply(text)
+
+    audio = open(file_name_wav, 'rb')
+    text = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio,
+        response_format="text",
+    )
+    audio.close()
+    await messege.reply(str(text))
 
     os.remove(file_name)
     os.remove(file_name_wav)
