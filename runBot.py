@@ -1,16 +1,21 @@
-from Config import TG_TOKEN, OPENAI_API_KEY
+from Config import PROXY_URL ,TG_TOKEN, OPENAI_API_KEY
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message
+from aiogram.filters import CommandStart
+from aiogram.client.session.aiohttp import AiohttpSession
 from openai import OpenAI
 from moviepy.editor import AudioFileClip
 import asyncio
 import os
 
-
-bot = Bot(TG_TOKEN)
+session = AiohttpSession(proxy=(PROXY_URL))
+bot = Bot(token=TG_TOKEN, session=session)
 dp = Dispatcher()
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+@dp.message(CommandStart())
+async def command_start_handler(message: Message) -> None:
+    await message.answer(f"Hello, {message.from_user.full_name}!")
 
 @dp.message(F.voice)
 async  def conwertWoiceToText(messege: Message) -> None:
