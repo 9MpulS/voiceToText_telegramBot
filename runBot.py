@@ -1,9 +1,8 @@
-from Config import TG_TOKEN, OPENAI_API_KEY, FFMPEG_PATH
+from Config import TG_TOKEN, OPENAI_API_KEY
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import CommandStart
 from aiogram.types import Message
 from openai import OpenAI
-import subprocess
+from moviepy.editor import AudioFileClip
 import asyncio
 import os
 
@@ -12,9 +11,6 @@ bot = Bot(TG_TOKEN)
 dp = Dispatcher()
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-@dp.message(CommandStart())
-async def command_start_handler(message: Message) -> None:
-    await message.answer(f"Приветствую в братстве, {message.from_user.full_name}!")
 
 @dp.message(F.voice)
 async  def conwertWoiceToText(messege: Message) -> None:
@@ -23,7 +19,8 @@ async  def conwertWoiceToText(messege: Message) -> None:
     file_name = f'{short_name}_{messege.from_user.full_name}.aga'   # Формуємо повне імя файлів
     file_name_wav = f'{short_name}_{messege.from_user.full_name}.wav'
     await bot.download(messege.voice.file_id, file_name)    # Скачуємо файл в розширенні .aga
-    subprocess.run([FFMPEG_PATH, '-i', file_name, file_name_wav])   # Конвертуємо розширення файлу в .wav
+    audio_clip = AudioFileClip(file_name)   # Конвертуємо файз з формату .oga в .wav
+    audio_clip.write_audiofile(file_name_wav, codec='pcm_s16le', fps=44100)
 
     audio = open(file_name_wav, 'rb')   # Відкриваємо файл .wav
     text = client.audio.transcriptions.create(  # Робота з OpenAI API
